@@ -18,16 +18,16 @@ public class FloodFill {
 		//int counter = 0;
 		int targetInt = (int)target;
 		int replacementInt = replacementColor ;
-		Log.i("thread","here2  "+targetInt+"   "+replacementInt);
+		//Log.i("thread","here2  "+targetInt+"   "+replacementInt);
 		if (targetInt != replacementInt) {
 			Queue<Point> queue = new LinkedList<Point>();
 			do {
 					int x = node.x;
 					int y = node.y;
-					Log.i("flood","   "+x+"   "+image.getPixel(x - 1, y)+"   "+targetInt);
+					//Log.i("flood","   "+x+"   "+image.getPixel(x - 1, y)+"   "+targetInt);
 					while (x > 0 && image.getPixel(x - 1, y) == targetInt) {
 						x--;
-						Log.i("flood","xxx1 = "+ (x));
+						//Log.i("flood","xxx1 = "+ (x));
 					}
 					boolean spanUp = false;
 					boolean spanDown = false;

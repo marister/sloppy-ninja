@@ -11,6 +11,7 @@ import org.andengine.opengl.texture.region.TextureRegion;
 import org.andengine.opengl.texture.region.TiledTextureRegion;
 
 import android.content.Context;
+import android.graphics.Point;
 import android.util.Log;
 
 import tv.ouya.console.api.OuyaController;
@@ -21,6 +22,11 @@ public class Player {
     Camera mCamera;
     float axisX = 0;
     float axisY = 0;
+    int mSpeed;
+    boolean mIsSafe;
+    
+    Point mPlayerPosition;
+    Point mImageOffset;
     
     public static enum Moves{
     	RIGHT,
@@ -55,34 +61,83 @@ public class Player {
         //activity.getEngine().getTextureManager().loadTexture(this.mPlayerTextureAtlas);
         this.playerImage = new AnimatedSprite(0, 0, this.mPlayerRunTextureReg, activity.getVertexBufferObjectManager());
         playerImage.animate(100);
+        playerImage.setScale(0.8f, 0.8f);
         playerImage.setPosition(mCamera.getWidth() / 2 - playerImage.getWidth() / 2,
             mCamera.getHeight()/2 - playerImage.getHeight()/2 );
+        
+        initPlayer();
+    }
+    
+    private void initPlayer()
+    {
+    	mSpeed = 6;
+    	mPlayerPosition = new Point(100,100);
+    	mImageOffset = new Point(-30,-60);
+    	playerImage.setPosition(mPlayerPosition.x + mImageOffset.x,mPlayerPosition.y + mImageOffset.y);
+    	mIsSafe = true;
     }
 
 	public void move(Moves nextMove) {
 		int speedX = 0;
 		int speedY = 0;
-		int speed = 5;
+		
 		
 		switch(nextMove)
 		{
 		case RIGHT:
-			speedX = speed;
-			playerImage.setScaleX(1f);
+			speedX = mSpeed;
+			//playerImage.setScaleX(1f);
+			playerImage.setFlippedHorizontal(false);
 			break;
 		case LEFT:
-			playerImage.setScaleX(-1f);
-			speedX = -speed;
+			//playerImage.setScaleX(-1f);
+			playerImage.setFlippedHorizontal(true);
+			speedX = -mSpeed;
 			break;
 		case UP:
-			speedY = -speed;
+			speedY = -mSpeed;
 			break;
 		case DOWN:
-			speedY = speed;
+			speedY = mSpeed;
 			break;
 		}
 		
-		playerImage.setPosition(playerImage.getX()+speedX,playerImage.getY()+speedY);
+		float nextPositionX = mPlayerPosition.x+speedX;
+		float nextPositionY = mPlayerPosition.y+speedY;
+		
+		if (mIsSafe == true)
+		{
+			safefLogic((int)nextPositionX,(int)nextPositionY);
+		}
+		else
+		{
+			dangerLogic((int)nextPositionX,(int)nextPositionY);
+		}
+		//playerImage.setPosition(playerImage.getX()+speedX,playerImage.getY()+speedY);
+	}
+	
+	private void safefLogic(int nextPositionX, int nextPositionY) {
+		//Log.i("Player","safe  "+nextPositionX+"   "+nextPositionY);
+		//Log.i("Player",""+BoardManager.GetPixelColor(nextPositionX, nextPositionY)+"   "+BoardManager.LineColor.WHITE);
+		if (BoardManager.GetPixelColor(nextPositionX, nextPositionY) == BoardManager.BoardColor.BORDER)
+		{
+			mPlayerPosition.x = nextPositionX;
+			mPlayerPosition.y = nextPositionY;
+			playerImage.setPosition(mPlayerPosition.x + mImageOffset.x,mPlayerPosition.y + mImageOffset.y);
+		}
+		else
+			if (BoardManager.GetPixelColor(nextPositionX, nextPositionY) == BoardManager.BoardColor.EMPTY)
+			{
+				//playerImage.setPosition(nextPositionX,nextPositionY);
+				mPlayerPosition.x = nextPositionX;
+				mPlayerPosition.y = nextPositionY;
+				playerImage.setPosition(mPlayerPosition.x + mImageOffset.x,mPlayerPosition.y + mImageOffset.y);
+			}
+	}
+	
+	private void dangerLogic(int nextPositionX, int nextPositionY) {
+		// TODO Auto-generated method stub
+		
 	}
 	
 	static private float stickMag(float axisX, float axisY) {
@@ -96,6 +151,12 @@ public class Player {
     }
 	
 	protected void update(){
+		
+		checkStickDirection();
+		Log.i("player","x: "+playerImage.getX()+"  y: "+playerImage.getY());
+	}
+
+	private void checkStickDirection() {
 		if (axisX >= -1f && axisX < -0.5f && axisY >= -0.75f && axisY < 0.75f){
 			move(Moves.LEFT);
 		}

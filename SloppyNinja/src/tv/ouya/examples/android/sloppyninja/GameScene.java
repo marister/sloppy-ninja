@@ -47,12 +47,12 @@ public class GameScene extends Scene{
 	BitmapTextureAtlas mBoardAtlas;
 	TextureRegion mBoardRegion;
 	Sprite  mBoardSprite;
-	Bitmap b;
 	BitmapTextureAtlas mLevelBitmapTextureAtlas;
 	BitmapTextureAtlas mBoardBitmapTextureAtlas;
 	BitmapTextureAtlasSource mBoardBitmapSource;
 	TextureRegion mBackgroundRegion;
 	Sprite mBackgroundSprite;
+	BoardManager mBoardManager;
 	
 	public GameScene(){
 		activity = SloppyNinjaActivity.getSharedInstance();
@@ -76,10 +76,11 @@ public class GameScene extends Scene{
 							        }
 							});
 		this.attachChild(player.playerImage);
+		
+		mBoardManager = new BoardManager();
 	}
 	
 	private void createBitmapData() {
-		// TODO Auto-generated method stub
 		mLevelBitmapTextureAtlas = new BitmapTextureAtlas(activity.getEngine().getTextureManager()
 				,1280,720, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
 		
@@ -119,7 +120,7 @@ public class GameScene extends Scene{
 	    physicsWorld.setContactListener(createContactListener());
 	}
 	
-	public void createLevelBackground(){
+	/*public void createLevelBackground(){
 		BitmapTextureAtlas mBackgroundTextureAtlas;
 		TextureRegion mBackgroundTexture;
 		Sprite mBackground;
@@ -147,7 +148,7 @@ public class GameScene extends Scene{
 	//	Bitmap bitmap = BitmapFactory.decodeStream(activity.getEngine().getTextureManager().);
 		//Drawable mDrawable;
 		this.attachChild(mBoardSprite);
-	}
+	} */
 
 	public void onKeyDown(int keyCode) {
 		if (keyCode == OuyaController.BUTTON_DPAD_RIGHT){
@@ -236,14 +237,14 @@ public class GameScene extends Scene{
 			destColor = "0";
 			long randColorL = Long.valueOf(destColor, 16);
 		    randColor = (int)randColorL;//Long.valueOf(destColor, 16);
-		    Log.i("thread","here1a  "+pixelColor+"   "+sourceColor+"  "+randColor+"   "+destColor);
+		   // Log.i("thread","here1a  "+pixelColor+"   "+sourceColor+"  "+randColor+"   "+destColor);
 		}
 		else
 		{
 			destColor = "ff35FFD6";
 			long randColorL = Long.valueOf(destColor, 16);
 		    randColor = (int)randColorL;//Long.valueOf(destColor, 16);
-		    Log.i("thread","here1b  "+pixelColor+"   "+sourceColor+"  "+randColor+"   "+destColor);
+		   // Log.i("thread","here1b  "+pixelColor+"   "+sourceColor+"  "+randColor+"   "+destColor);
 		}
 		
         
@@ -263,7 +264,7 @@ public class GameScene extends Scene{
 				
 				int pixelColor2 = ib.getPixel(p1.x, p1.y);
 				String sourceColor2 = Integer.toHexString(pixelColor2);
-				Log.i("thread","here3  "+pixelColor2+"   "+sourceColor2);
+				//Log.i("thread","here3  "+pixelColor2+"   "+sourceColor2);
 				
 			}
 		});
