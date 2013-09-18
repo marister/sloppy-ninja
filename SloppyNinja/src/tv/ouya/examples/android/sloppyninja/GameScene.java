@@ -52,7 +52,7 @@ public class GameScene extends Scene{
 	BitmapTextureAtlasSource mBoardBitmapSource;
 	TextureRegion mBackgroundRegion;
 	Sprite mBackgroundSprite;
-	BoardManager mBoardManager;
+	public BoardManager mBoardManager;
 	
 	public GameScene(){
 		activity = SloppyNinjaActivity.getSharedInstance();
@@ -77,7 +77,7 @@ public class GameScene extends Scene{
 							});
 		this.attachChild(player.playerImage);
 		
-		mBoardManager = new BoardManager();
+		mBoardManager = new BoardManager(this);
 	}
 	
 	private void createBitmapData() {
@@ -91,13 +91,14 @@ public class GameScene extends Scene{
 		
 		this.attachChild(mBackgroundSprite);
 		
-		mBoardBitmapTextureAtlas = new BitmapTextureAtlas(activity.getEngine().getTextureManager()
+		/*mBoardBitmapTextureAtlas = new BitmapTextureAtlas(activity.getEngine().getTextureManager()
 				,1280,720, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
 		mBoardRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(mBoardBitmapTextureAtlas, activity, "gfx/Board_blank.png", 0, 0);
 		activity.getEngine().getTextureManager().loadTexture(mBoardBitmapTextureAtlas);
 		mBoardSprite = new Sprite(0, 0, mBoardRegion, activity.getVertexBufferObjectManager());
 		mBoardSprite.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
-		
+		this.attachChild(mBoardSprite);
+		*/
 		InputStream in = null;
 		try {
 			in = activity.getAssets().open("gfx/Board_blank.png");
@@ -111,7 +112,7 @@ public class GameScene extends Scene{
 		
 		
 		
-		this.attachChild(mBoardSprite);
+		
 	}
 
 	private void initPhysics() {
@@ -164,13 +165,18 @@ public class GameScene extends Scene{
 			player.move(Player.Moves.UP);
 		}
 		if (keyCode == OuyaController.BUTTON_U) {
-			FillArea();
+			//FillArea();
+        }
+		if (keyCode == OuyaController.BUTTON_O) {
+			player.ActionSlice_down();
         }
 	}
 
 	public void onKeyUp(int keyCode) {
 		// TODO Auto-generated method stub
-		
+		if (keyCode == OuyaController.BUTTON_O) {
+			player.ActionSlice_up();
+        }
 	}
 
 	public void updateAxis(float x, float y) {
@@ -210,66 +216,5 @@ public class GameScene extends Scene{
 	    return contactListener;
 	}
 
-	public void FillArea()
-	{
-		final Point p1 = new Point();
-		p1.x=(int) 950; 
-		p1.y=(int) 200; 
-		
-		final FloodFill f= new FloodFill();
-
-        //ib =  BitmapFactory.decodeStream(in, null, decodeOptions);
-  
-        //Bitmap.Config config = ib.getConfig() ;
-        final Bitmap ib = mBoardBitmapSource.getBitmap();
-		
-        //final Scene thisScene = this;
-        //final long randColor = 2000000000l + (long)(Math.random() * ((4279308560l - 2000000000l) + 1));
-		//final String destColor = Long.toHexString(randColor);
-        //int randColor = 100000000;
-        final String destColor;// = "ff35FFD6";//Integer.toHexString(randColor);
-       
-		int pixelColor = ib.getPixel(p1.x, p1.y);
-		final String sourceColor = Integer.toHexString(pixelColor);
-		final int randColor;
-		if (pixelColor != 0)
-		{
-			destColor = "0";
-			long randColorL = Long.valueOf(destColor, 16);
-		    randColor = (int)randColorL;//Long.valueOf(destColor, 16);
-		   // Log.i("thread","here1a  "+pixelColor+"   "+sourceColor+"  "+randColor+"   "+destColor);
-		}
-		else
-		{
-			destColor = "ff35FFD6";
-			long randColorL = Long.valueOf(destColor, 16);
-		    randColor = (int)randColorL;//Long.valueOf(destColor, 16);
-		   // Log.i("thread","here1b  "+pixelColor+"   "+sourceColor+"  "+randColor+"   "+destColor);
-		}
-		
-        
-        Thread T = new Thread(new Runnable(){
-			
-			@Override
-			public void run() {
-				
-				f.floodFill(ib,p1,sourceColor,randColor);
-				
-				//BitmapTextureAtlasSource source = new BitmapTextureAtlasSource(ib);
-				mBoardBitmapSource = new BitmapTextureAtlasSource(ib);
-				
-				mBoardBitmapTextureAtlas.clearTextureAtlasSources();
-				mBoardBitmapTextureAtlas.addTextureAtlasSource(mBoardBitmapSource, 0, 0);
-				mBoardBitmapTextureAtlas.load();
-				
-				int pixelColor2 = ib.getPixel(p1.x, p1.y);
-				String sourceColor2 = Integer.toHexString(pixelColor2);
-				//Log.i("thread","here3  "+pixelColor2+"   "+sourceColor2);
-				
-			}
-		});
-        T.start();
-		
-		
-	}
+	
 }

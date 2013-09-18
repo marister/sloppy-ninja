@@ -2,70 +2,44 @@ package tv.ouya.examples.android.sloppyninja;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 
+import org.andengine.entity.primitive.Line;
+import org.andengine.entity.sprite.Sprite;
 import org.andengine.opengl.texture.TextureOptions;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlas;
 import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasSource;
+import org.andengine.opengl.texture.atlas.bitmap.BitmapTextureAtlasTextureRegionFactory;
+import org.andengine.opengl.texture.region.TextureRegion;
 
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.opengl.GLES20;
 import android.util.Log;
 
 public class BoardManager {
 	private SloppyNinjaActivity activity;
 	BitmapTextureAtlas mHiddenBoardBitmapTextureAtlas;
 	private BitmapTextureAtlasSource mBoardBitmapSource;
+	private Sprite mBoardSprite;
+	private GameScene mGameScene;
+	TextureRegion mBoardRegion;
 //	private int[] mColorsArray;
 	private static Bitmap mHiddenBitmap;
+	ArrayList<Point> mPivotList;
+	ArrayList<Line> mLinesList;
 	
-	/*
-	static public enum LineColor{
-		//WHITE(111111111), RED(222222222), EMPTY(333333333), VOID(0);
-		WHITE(Color.argb(255, 255, 255, 255)), RED(Color.argb(255, 255, 0, 0)), EMPTY(Color.argb(255, 0, 0, 0)), VOID(0);
-		
-		private int val;
-		
-		LineColor(int val) {
-	        this.val = val;
-	    }
-
-	    public int getVal() {
-	        return this.val;
-	    }
-	    
-	    public static LineColor getType(int val){
-	    	LineColor answer = null;
-	    	if (WHITE.getVal() == val)
-	    	{
-	    		answer = LineColor.WHITE;
-	    	}
-	    	else
-	    		if (RED.getVal() == val)
-		    	{
-		    		answer = LineColor.RED;
-		    	}
-	    		else
-		    		if (EMPTY.getVal() == val)
-			    	{
-			    		answer = LineColor.EMPTY;
-			    	}
-		    		else
-			    		if (VOID.getVal() == val)
-				    	{
-				    		answer = LineColor.VOID;
-				    	}
-	    	
-	    	return answer;
-	    }
-	}*/
-	
-	public BoardManager()
+	public BoardManager(GameScene i_gameScene)
 	{
-		activity = SloppyNinjaActivity.getSharedInstance();
-		mHiddenBoardBitmapTextureAtlas = new BitmapTextureAtlas(activity.getEngine().getTextureManager()
+		this.activity = SloppyNinjaActivity.getSharedInstance();
+		this.mGameScene = i_gameScene;
+		this.mHiddenBoardBitmapTextureAtlas = new BitmapTextureAtlas(activity.getEngine().getTextureManager()
 				,1280,720, TextureOptions.BILINEAR_PREMULTIPLYALPHA);
+		
+		showHiddenBitmap();
 		
 		InputStream in = null;
 		try {
@@ -80,6 +54,9 @@ public class BoardManager {
 		mHiddenBitmap = mBoardBitmapSource.getBitmap();
 		
 		BoardColor.InitBoard(mHiddenBitmap);
+		
+		mPivotList = new ArrayList<Point>();
+		mLinesList = new ArrayList<Line>();
 		//initBoard();
 	}
 	
@@ -87,47 +64,6 @@ public class BoardManager {
 		
 	}
 
-	/*private void initBoard() {
-		Point startPosition = new Point(100,100);
-		int width = 1080;
-		int height = 520;
-		
-		//clear all bitmap pixels to void ( = 0 );
-		for (int i = 0; i  < activity.CAMERA_WIDTH; i++)
-		{
-			for (int j = 0; j  < activity.CAMERA_HEIGHT; j++)
-			{
-				mHiddenBitmap.setPixel(i, j, LineColor.VOID.getVal());
-			}
-		}
-		
-		//set playable area pixels to empty (  );
-		for (int i = 0; i  < width + 1; i++)
-		{
-			for (int j = 0; j  < height + 1; j++)
-			{
-				mHiddenBitmap.setPixel(startPosition.x + i, startPosition.y + j, LineColor.EMPTY.getVal());
-			}
-		}
-		
-		//set white line border pixels to WHITE (  );
-		for (int i = 0; i  < width + 1; i++)
-		{
-			mHiddenBitmap.setPixel(startPosition.x + i, startPosition.y, LineColor.WHITE.getVal());
-			mHiddenBitmap.setPixel(startPosition.x + i, startPosition.y + height, LineColor.WHITE.getVal());
-			//System.out.println((startPosition.x + i)+"   "+startPosition.y+"   "+mHiddenBitmap.getPixel(startPosition.x + i, startPosition.y));
-		}
-		
-		for (int j = 0; j  < height + 1; j++)
-		{
-			mHiddenBitmap.setPixel(startPosition.x , startPosition.y + j, LineColor.WHITE.getVal());
-			mHiddenBitmap.setPixel(startPosition.x + width, startPosition.y + j, LineColor.WHITE.getVal());
-		}
-		
-		//Log.i("BoardManager","init = "+mHiddenBitmap.getPixel(100, 100));
-		//showHiddenBitmap();
-	}*/
-	
 	public static int GetPixelColor(int x, int y){
 		return mHiddenBitmap.getPixel(x, y);
 		//Log.i("BoardManager","value = "+value + "   pixel = "+mHiddenBitmap.getPixel(100, 100));
@@ -136,10 +72,24 @@ public class BoardManager {
 	
 
 	private void showHiddenBitmap(){
-		activity.getEngine().getTextureManager().loadTexture(mHiddenBoardBitmapTextureAtlas);
-		mHiddenBoardBitmapTextureAtlas.clearTextureAtlasSources();
-		mHiddenBoardBitmapTextureAtlas.addTextureAtlasSource(mBoardBitmapSource, 0, 0);
-		mHiddenBoardBitmapTextureAtlas.load();
+		this.mBoardRegion = BitmapTextureAtlasTextureRegionFactory.createFromAsset(mHiddenBoardBitmapTextureAtlas, activity, "gfx/Board_blank.png", 0, 0);
+		this.activity.getEngine().getTextureManager().loadTexture(mHiddenBoardBitmapTextureAtlas);
+		this.mBoardSprite = new Sprite(0, 0, mBoardRegion, activity.getVertexBufferObjectManager());
+		this.mBoardSprite.setBlendFunction(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+		mBoardSprite.setZIndex(0);
+		
+		this.mGameScene.attachChild(mBoardSprite);
+		this.mGameScene.sortChildren();
+	}
+	
+	private void updateHiddenBitmap()
+	{
+		mBoardBitmapSource = new BitmapTextureAtlasSource(mHiddenBitmap);
+		
+		this.mHiddenBoardBitmapTextureAtlas.clearTextureAtlasSources();
+		
+		this.mHiddenBoardBitmapTextureAtlas.addTextureAtlasSource(mBoardBitmapSource, 0, 0);
+		this.mHiddenBoardBitmapTextureAtlas.load();
 	}
 	
 	public static class BoardColor{
@@ -154,5 +104,111 @@ public class BoardManager {
 			VOID = i_bitmap.getPixel(99, 99);
 			REDLINE = Color.argb(255, 255, 0, 0);
 		}
+	}
+	
+	public void DrawLine(int i_x1, int i_y1, int i_x2,	int i_y2, int i_color, boolean isPivot) {
+		clearRedLines();
+		if (isPivot == true)
+		{
+			mPivotList.add(new Point(i_x1, i_y1));
+		}
+		drawRedLines(i_x2, i_y2);
+	}
+
+	private void drawRedLines(int i_x, int i_y) {
+		mLinesList.clear();
+		System.out.println(mPivotList.size());
+		for (int i = 1; i < mPivotList.size(); i++)
+		{
+			mLinesList.add(new Line(mPivotList.get(i-1).x, mPivotList.get(i-1).y, mPivotList.get(i).x, mPivotList.get(i).y,activity.getVertexBufferObjectManager()) );
+			Line curLine = mLinesList.get(mLinesList.size() - 1);
+			curLine.setColor(255, 255, 255, 255);
+			curLine.setZIndex(9);
+			this.mGameScene.attachChild(curLine);
+			this.mGameScene.sortChildren();
+		}
+		if (mPivotList.size() > 0)
+		{
+			mLinesList.add(new Line(mPivotList.get(mPivotList.size() - 1).x, mPivotList.get(mPivotList.size() - 1).y, i_x, i_y,activity.getVertexBufferObjectManager()) );
+			Line curLine = mLinesList.get(mLinesList.size() - 1);
+			curLine.setColor(255, 255, 255, 255);
+			curLine.setZIndex(9);
+			this.mGameScene.attachChild(curLine);
+			this.mGameScene.sortChildren();
+		}
+	}
+
+	private void clearRedLines() {
+		for (int i = 0; i < mLinesList.size(); i++)
+		{
+			this.mGameScene.detachChild(mLinesList.get(i));
+		}
+		mLinesList.clear();
+	}
+	
+	public void ClearPivots()
+	{
+		mPivotList.clear();
+	}
+	
+	public void FillArea()
+	{
+		final Point p1 = new Point();
+		p1.x=(int) 950; 
+		p1.y=(int) 200; 
+		
+		final FloodFill f= new FloodFill();
+
+        //ib =  BitmapFactory.decodeStream(in, null, decodeOptions);
+  
+        //Bitmap.Config config = ib.getConfig() ;
+        final Bitmap ib = mBoardBitmapSource.getBitmap();
+		
+        //final Scene thisScene = this;
+        //final long randColor = 2000000000l + (long)(Math.random() * ((4279308560l - 2000000000l) + 1));
+		//final String destColor = Long.toHexString(randColor);
+        //int randColor = 100000000;
+        final String destColor;// = "ff35FFD6";//Integer.toHexString(randColor);
+       
+		int pixelColor = ib.getPixel(p1.x, p1.y);
+		final String sourceColor = Integer.toHexString(pixelColor);
+		final int randColor;
+		if (pixelColor != 0)
+		{
+			destColor = "0";
+			long randColorL = Long.valueOf(destColor, 16);
+		    randColor = (int)randColorL;//Long.valueOf(destColor, 16);
+		   // Log.i("thread","here1a  "+pixelColor+"   "+sourceColor+"  "+randColor+"   "+destColor);
+		}
+		else
+		{
+			destColor = "ff35FFD6";
+			long randColorL = Long.valueOf(destColor, 16);
+		    randColor = (int)randColorL;//Long.valueOf(destColor, 16);
+		   // Log.i("thread","here1b  "+pixelColor+"   "+sourceColor+"  "+randColor+"   "+destColor);
+		}
+		
+        
+        Thread T = new Thread(new Runnable(){
+			
+			@Override
+			public void run() {
+				
+				f.floodFill(ib,p1,sourceColor,randColor);
+				
+				//BitmapTextureAtlasSource source = new BitmapTextureAtlasSource(ib);
+				mBoardBitmapSource = new BitmapTextureAtlasSource(ib);
+				
+				mHiddenBoardBitmapTextureAtlas.clearTextureAtlasSources();
+				mHiddenBoardBitmapTextureAtlas.addTextureAtlasSource(mBoardBitmapSource, 0, 0);
+				mHiddenBoardBitmapTextureAtlas.load();
+				
+				int pixelColor2 = ib.getPixel(p1.x, p1.y);
+				String sourceColor2 = Integer.toHexString(pixelColor2);
+				//Log.i("thread","here3  "+pixelColor2+"   "+sourceColor2);
+				
+			}
+		});
+        T.start();
 	}
 }

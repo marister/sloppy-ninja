@@ -46,6 +46,10 @@ public class Player {
 	//public Sprite playerRunImage;
 	private int RUN_COLUMN = 8;
 	private int RUN_ROWS = 1;
+	private boolean mIsSlice;
+	
+	private boolean mIsLeftRight;
+	private boolean mIsChangeDirection;
 	
 	static final private float c_playerRadius = 0.5f;
  
@@ -64,7 +68,7 @@ public class Player {
         playerImage.setScale(0.8f, 0.8f);
         playerImage.setPosition(mCamera.getWidth() / 2 - playerImage.getWidth() / 2,
             mCamera.getHeight()/2 - playerImage.getHeight()/2 );
-        
+        playerImage.setZIndex(10);
         initPlayer();
     }
     
@@ -72,9 +76,12 @@ public class Player {
     {
     	mSpeed = 6;
     	mPlayerPosition = new Point(100,100);
-    	mImageOffset = new Point(-30,-60);
+    	mImageOffset = new Point(-40,-60);
     	playerImage.setPosition(mPlayerPosition.x + mImageOffset.x,mPlayerPosition.y + mImageOffset.y);
     	mIsSafe = true;
+    	mIsSlice = false;
+    	mIsLeftRight = false;
+    	mIsChangeDirection = false;
     }
 
 	public void move(Moves nextMove) {
@@ -121,23 +128,126 @@ public class Player {
 		//Log.i("Player",""+BoardManager.GetPixelColor(nextPositionX, nextPositionY)+"   "+BoardManager.LineColor.WHITE);
 		if (BoardManager.GetPixelColor(nextPositionX, nextPositionY) == BoardManager.BoardColor.BORDER)
 		{
-			mPlayerPosition.x = nextPositionX;
-			mPlayerPosition.y = nextPositionY;
-			playerImage.setPosition(mPlayerPosition.x + mImageOffset.x,mPlayerPosition.y + mImageOffset.y);
+			ChangePlayerPosition(nextPositionX, nextPositionY);
 		}
 		else
-			if (BoardManager.GetPixelColor(nextPositionX, nextPositionY) == BoardManager.BoardColor.EMPTY)
+			if (BoardManager.GetPixelColor(nextPositionX, nextPositionY) == BoardManager.BoardColor.VOID)
 			{
 				//playerImage.setPosition(nextPositionX,nextPositionY);
-				mPlayerPosition.x = nextPositionX;
-				mPlayerPosition.y = nextPositionY;
-				playerImage.setPosition(mPlayerPosition.x + mImageOffset.x,mPlayerPosition.y + mImageOffset.y);
+				findNextBorderPosition(nextPositionX,nextPositionY);
 			}
+			else
+				if (BoardManager.GetPixelColor(nextPositionX, nextPositionY) == BoardManager.BoardColor.EMPTY
+						&& mIsSlice == true)
+				{
+					//playerImage.setPosition(nextPositionX,nextPositionY);
+					startSlice(nextPositionX,nextPositionY);
+				}
+	}
+	
+	private void startSlice(int nextPositionX, int nextPositionY) {
+		mIsSafe = false;
+		Point curPosition = new Point(mPlayerPosition.x, mPlayerPosition.y);
+		ChangePlayerPosition(nextPositionX, nextPositionY);
+		((GameScene)activity.mCurrentScene).mBoardManager.DrawLine(curPosition.x, curPosition.y, nextPositionX, nextPositionY, BoardManager.BoardColor.REDLINE, true);
+		
 	}
 	
 	private void dangerLogic(int nextPositionX, int nextPositionY) {
-		// TODO Auto-generated method stub
+		Point curPosition = new Point(mPlayerPosition.x, mPlayerPosition.y);
+		if (BoardManager.GetPixelColor(nextPositionX, nextPositionY) == BoardManager.BoardColor.BORDER)
+		{
+			ChangePlayerPosition(nextPositionX, nextPositionY);
+			closeArea(curPosition, nextPositionX, nextPositionY);
+		}
+		else
+			if (BoardManager.GetPixelColor(nextPositionX, nextPositionY) == BoardManager.BoardColor.VOID)
+			{
+				findNextBorderPosition(nextPositionX,nextPositionY);
+				closeArea(curPosition, nextPositionX, nextPositionY);
+			}
+			else
+				if (BoardManager.GetPixelColor(nextPositionX, nextPositionY) == BoardManager.BoardColor.EMPTY)
+				{
+					ChangePlayerPosition(nextPositionX, nextPositionY);
+					((GameScene)activity.mCurrentScene).mBoardManager.DrawLine(curPosition.x, curPosition.y, nextPositionX, nextPositionY, BoardManager.BoardColor.REDLINE, mIsChangeDirection);
+				}
+	}
+
+	private void closeArea(Point curPosition, int nextPositionX, int nextPositionY) {
+		System.out.println("CLOSE AREA");
+		((GameScene)activity.mCurrentScene).mBoardManager.DrawLine(curPosition.x, curPosition.y, nextPositionX, nextPositionY, BoardManager.BoardColor.REDLINE, mIsChangeDirection);
+		((GameScene)activity.mCurrentScene).mBoardManager.ClearPivots();
+		mIsSafe = true;
+		mIsSlice = false;
+		mIsLeftRight = false;
+    	mIsChangeDirection = false;
+	}
+
+	private void findNextBorderPosition(int nextPositionX, int nextPositionY) {
+		Point maxPixelsToMove = new Point(Math.abs(mPlayerPosition.x - nextPositionX)
+											,Math.abs(mPlayerPosition.y - nextPositionY) );
+		int pixelCounter = 0;
+		boolean foundBorder = false;
+		int i_x = 0;
+		while (i_x < maxPixelsToMove.x && foundBorder == false)
+		{
+			int positiveFactor = Math.abs(mPlayerPosition.x - nextPositionX) / (mPlayerPosition.x - nextPositionX);
+			int curPosToCheckX = mPlayerPosition.x - (mPlayerPosition.x - nextPositionX) + (i_x * positiveFactor);
+			if (BoardManager.GetPixelColor(curPosToCheckX, mPlayerPosition.y) == BoardManager.BoardColor.BORDER)
+			{
+				ChangePlayerPosition(curPosToCheckX, mPlayerPosition.y);
+				foundBorder = true;
+			}
+			i_x = i_x + 1;
+		}
 		
+		foundBorder = false;
+		int i_y = 0;
+		while (i_y < maxPixelsToMove.y && foundBorder == false)
+		{
+			int positiveFactor = Math.abs(mPlayerPosition.y - nextPositionY) / (mPlayerPosition.y - nextPositionY);
+			int curPosToCheckY = mPlayerPosition.y - (mPlayerPosition.y - nextPositionY) + (i_y * positiveFactor);
+			
+			if (BoardManager.GetPixelColor(mPlayerPosition.x, curPosToCheckY) == BoardManager.BoardColor.BORDER)
+			{
+				ChangePlayerPosition(mPlayerPosition.x, curPosToCheckY);
+				foundBorder = true;
+			}
+			i_y = i_y + 1;
+		}
+	}
+
+	private void ChangePlayerPosition(int nextPositionX, int nextPositionY) {
+		if (nextPositionX - mPlayerPosition.x != 0)
+		{
+			if (mIsLeftRight == false)
+			{
+				mIsChangeDirection = true;
+				
+			}
+			else
+			{
+				mIsChangeDirection = false;
+			}
+			mIsLeftRight = true;
+		}
+		else
+			if (nextPositionY - mPlayerPosition.y != 0)
+			{
+				if (mIsLeftRight == true)
+				{
+					mIsChangeDirection = true;
+				}
+				else
+				{
+					mIsChangeDirection = false;
+				}
+				mIsLeftRight = false;
+			}
+		mPlayerPosition.x = nextPositionX;
+		mPlayerPosition.y = nextPositionY;
+		playerImage.setPosition(mPlayerPosition.x + mImageOffset.x,mPlayerPosition.y + mImageOffset.y);
 	}
 	
 	static private float stickMag(float axisX, float axisY) {
@@ -153,7 +263,7 @@ public class Player {
 	protected void update(){
 		
 		checkStickDirection();
-		Log.i("player","x: "+playerImage.getX()+"  y: "+playerImage.getY());
+		//Log.i("player","x: "+playerImage.getX()+"  y: "+playerImage.getY());
 	}
 
 	private void checkStickDirection() {
@@ -177,6 +287,22 @@ public class Player {
 	public void updateAxis(float x, float y) {
 		axisX = x;
 		axisY = y;
+		
+	}
+
+	public void ActionSlice_down() {
+		if (mIsSafe == true)
+		{
+			mIsSlice = true;
+		}
+		
+	}
+	
+	public void ActionSlice_up() {
+		if (mIsSafe == true)
+		{
+			mIsSlice = false;
+		}
 		
 	}
 }
